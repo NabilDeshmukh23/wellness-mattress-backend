@@ -19,7 +19,6 @@ mongoose.connect(uri)
         console.error(err);
     });
 
-// Test Route
 app.get('/', (req, res) => {
     res.send("Wellness Mattress API is Live and Database is Connected!");
 });
