@@ -5,14 +5,11 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// 1. Get the URI from your .env file
 const uri = process.env.MONGO_URI;
 
-// 2. The Connection Logic
 mongoose.connect(uri)
     .then(() => {
         console.log("✅ MongoDB Connection Successful: Connected to Wellness-Mattress-DB");
