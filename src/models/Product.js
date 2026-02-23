@@ -1,6 +1,16 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
+    productName: {
+        type: String,
+        required: [true, "Please enter product name"],
+        trim: true,
+        unique: true
+    },
+    description: {
+        type: String,
+        required: [true, "Please enter product description"]
+    },
     category: {
         type: String,
         required: [true, "Please select a category"],
@@ -9,56 +19,49 @@ const productSchema = new mongoose.Schema({
             message: "Please select a valid category"
         }
     },
-    productName: {
+    subCategory: {
         type: String,
-        required: [true, "Please enter product name"],
-        trim: true
-    },
-    description: {
-        type: String,
-        required: [true, "Please enter product description"]
+        enum: ["dream-fit", "ortho-fit", "wellness-support", "latex-pro", "spine-comfort"]
     },
     type: { 
         type: String,
-        required: [true, "Please specify mattress type (e.g. Firm, Soft)"]
+        required: [true, "Please specify mattress feel (e.g. Firm, Medium, Plush)"]
     },
     imageUrl: {
         type: String,
-        required: [true, "Product image is required"]
+        required: [true, "Product image URL is required"]
     },
-    size: {
-        type: String, 
-        required: [true, "Please enter dimensions (e.g. 72x36)"]
-    },
-    colors: {
-        type: [String], // This allows you to store multiple colors in a list
-        default: ["White"]
-    },
-    price: {
+    variants: [
+        {
+            size: { type: String, required: true }, // e.g. "72x36 (Single)"
+            price: { type: Number, required: true },
+            stock: { type: Number, required: true, default: 0 }
+        }
+    ],
+    basePrice: {
         type: Number,
-        required: [true, "Please enter price"]
+        required: [true, "Please enter a base price for the listing"]
     },
     discount: {
-        type: Number,
+        type: Number, 
         default: 0
     },
     warranty: {
         type: String,
-        required: [true, "Please enter warranty period"]
+        required: [true, "Please enter warranty period (e.g. 10 Years)"]
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
+    ratings: {
+        type: Number,
+        default: 0
     },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+    numReviews: {
+        type: Number,
+        default: 0
+    },
+    isBestseller: {
+        type: Boolean,
+        default: false
     }
-});
-
-// This line ensures 'updatedAt' changes every time you edit the product
-productSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
-});
+}, { timestamps: true }); 
 
 module.exports = mongoose.model('Product', productSchema);

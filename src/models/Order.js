@@ -1,55 +1,67 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-    // Link to the User who placed the order
+    // 1. Link to the User
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    // Link to the specific Product
-    product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
-    },
-    // Redundant data for fast display without doing a lookup
-    productName: { type: String, required: true },
-    customerName: { type: String, required: true },
     
-    // Time details
-    orderDate: {
-        type: Date,
-        default: Date.now
+    orderItems: [
+        {
+            product: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Product',
+                required: true
+            },
+            name: { type: String, required: true },
+            quantity: { type: Number, required: true },
+            image: { type: String, required: true },
+            price: { type: Number, required: true },
+            size: { type: String, required: true } // Important for Mattress variants
+        }
+    ],
+
+    // 3. Shipping Details (Structured for logistics)
+    shippingInfo: {
+        address: { type: String, required: true },
+        city: { type: String, required: true },
+        state: { type: String, required: true },
+        pincode: { type: String, required: true },
+        phoneNo: { type: String, required: true }
     },
-    // You can derive time from the Date object in your frontend
-    
-    // Payment Details (Razorpay Integration)
-    paymentStatus: {
-        type: String,
-        enum: ['Pending', 'Paid', 'Failed'],
-        default: 'Pending'
+
+    // 4. Payment Details (Optimized for Razorpay)
+    paymentInfo: {
+        id: { type: String }, // Razorpay Payment ID
+        orderId: { type: String }, // Razorpay Order ID
+        status: { type: String, default: 'Pending' },
+        method: { type: String }
     },
-    paymentId: { 
-        type: String // This will store the Razorpay generated ID
-    },
-    paymentMethod: { 
-        type: String 
-    },
-    
-    // Order Status
+
+    // 5. Financial Breakdown
+    itemsPrice: { type: Number, required: true, default: 0 },
+    taxPrice: { type: Number, required: true, default: 0 },
+    shippingPrice: { type: Number, required: true, default: 0 },
+    totalAmount: { type: Number, required: true, default: 0 },
+
+    // 6. Status Tracking
     orderStatus: {
         type: String,
-        enum: ['Processing', 'In Transit', 'Delivered', 'Cancelled'],
+        required: true,
+        enum: ['Processing', 'Shipped', 'Delivered', 'Cancelled'],
         default: 'Processing'
     },
     
-    // Logistics
-    address: { type: String, required: true },
-    totalAmount: { type: Number, required: true },
-    
-    // Cancellation tracking
-    cancelledOn: { type: Date }
-});
+    // 7. Time Tracking
+    paidAt: Date,
+    deliveredAt: Date,
+    cancelledAt: Date,
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+}, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);
