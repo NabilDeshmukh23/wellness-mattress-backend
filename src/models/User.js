@@ -9,6 +9,10 @@ const userSchema = new mongoose.Schema({
         trim: true,
         maxLength: [50, "Name cannot exceed 50 characters"]
     },
+    dob: {
+        type: Date,
+        required: [false, "Please enter your date of birth"] 
+    },
     number: {
         type: String,
         required: [true, "Please enter your phone number"],

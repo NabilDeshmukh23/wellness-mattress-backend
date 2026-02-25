@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const Product = require('../models/Product'); 
+const Order = require('../models/Order');
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -18,7 +20,7 @@ exports.registerUser = async (req, res) => {
             email,
             password,
             number,
-            role: role || 'Customer'
+            role: role 
         });
 
         res.status(201).json({
@@ -58,16 +60,37 @@ exports.loginUser = async (req, res) => {
 };
 
 
+
 exports.getUserProfile = async (req, res) => {
-    const user = await User.findById(req.user._id);
-    if (user) {
+    try {
+      
+        const user = await User.findById(req.user._id)
+            .populate('cart.product') 
+            .populate('wishlist');
+
+        
+        const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
         res.json({
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role
+            success: true,
+            user: {
+                createdAt: user.createdAt,
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                number: user.number,
+                role: user.role,
+                shippingInfo: user.shippingInfo,
+                cart: user.cart,
+                wishlist: user.wishlist
+            },
+            orders 
         });
-    } else {
-        res.status(404).json({ message: "User not found" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 };
