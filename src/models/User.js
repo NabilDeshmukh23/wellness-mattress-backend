@@ -9,6 +9,14 @@ const userSchema = new mongoose.Schema({
         trim: true,
         maxLength: [50, "Name cannot exceed 50 characters"]
     },
+    gender: {
+        type: String,
+        enum: {
+            values: ['male', 'female', 'other'],
+            message: 'Please select a valid gender'
+        },
+        required: false
+    },
     dob: {
         type: Date,
         required: [false, "Please enter your date of birth"] 

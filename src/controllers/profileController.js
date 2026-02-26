@@ -27,19 +27,23 @@ exports.updateProfile = async (req, res) => {
         
         res.json({ success: true, user });
     } catch (error) {
+       
         if (error.code === 11000) {
             const field = Object.keys(error.keyValue)[0];
-            const message = `${field.charAt(0).toUpperCase() + field.slice(1)} is already registered with another account.`;
-            return res.status(400).json({ success: false, message });
+            const readableField = field === 'number' ? 'Phone number' : 'Email';
+            return res.status(400).json({ 
+                success: false, 
+                message: `${readableField} is already linked to another account.` 
+            });
         }
 
-        
+      
         if (error.name === 'ValidationError') {
-            const message = Object.values(error.errors).map(val => val.message);
-            return res.status(400).json({ success: false, message });
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ success: false, message: messages[0] });
         }
 
-        res.status(500).json({ success: false, message: "Internal Server Error. Please try again later." });
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
 
