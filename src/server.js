@@ -4,13 +4,20 @@ const cors = require('cors');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
+const profileRoutes = require('./routes/profileRoutes');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: '*', // For testing on Postman, allow all origins temporarily
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 
 const uri = process.env.MONGO_URI;
 

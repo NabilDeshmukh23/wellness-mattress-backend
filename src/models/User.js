@@ -57,12 +57,24 @@ const userSchema = new mongoose.Schema({
         }
     ],
 
-    shippingInfo: {
-        address: { type: String },
-        city: { type: String },
-        state: { type: String },
-        pincode: { type: String }
-    },
+  shippingInfo: [
+    {
+        fullName: { type: String, required: true },
+        phoneNo: { type: String, required: true },
+        addressLine: { type: String, required: true }, // House No, Building, Company
+        street: { type: String, required: true },      // Area, Colony, Street, Sector
+        landmark: { type: String },
+        city: { type: String, required: true },
+        state: { type: String, required: true },
+        pincode: { type: String, required: true },
+        addressType: { 
+            type: String, 
+            enum: ['Home', 'Work', 'Other'], 
+            default: 'Home' 
+        },
+        isDefault: { type: Boolean, default: false }
+    }
+],
 
     createdAt: {
         type: Date,
