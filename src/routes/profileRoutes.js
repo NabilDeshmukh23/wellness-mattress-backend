@@ -8,7 +8,7 @@ const {
     addAddress,
     deleteAddress,
     changePassword
-} = require('../controllers/profilecontroller');
+} = require('../controllers/profileController');
 
 // Import your existing auth middleware
 const { protect } = require('../middleware/authMiddleware');
