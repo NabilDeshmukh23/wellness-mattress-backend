@@ -61,8 +61,8 @@ const userSchema = new mongoose.Schema({
     {
         fullName: { type: String, required: true },
         phoneNo: { type: String, required: true },
-        addressLine: { type: String, required: true }, // House No, Building, Company
-        street: { type: String, required: true },      // Area, Colony, Street, Sector
+        addressLine: { type: String, required: true }, 
+        street: { type: String, required: true },     
         landmark: { type: String },
         city: { type: String, required: true },
         state: { type: String, required: true },
