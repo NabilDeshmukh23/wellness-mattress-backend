@@ -1,8 +1,7 @@
 const User = require('../models/User');
-const Order = require('../models/Order'); // Separate Order model
+const Order = require('../models/Order'); 
 const bcrypt = require('bcryptjs');
 
-// @desc    Get complete profile data
 exports.getUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id).populate('wishlist cart.product');
@@ -16,22 +15,38 @@ exports.getUserProfile = async (req, res) => {
     }
 };
 
-// @desc    Update Personal Details
 exports.updateProfile = async (req, res) => {
     try {
         const { name, number, dob, gender, email } = req.body;
+        
         const user = await User.findByIdAndUpdate(
             req.user._id,
             { name, number, dob, gender, email },
             { new: true, runValidators: true }
         );
+        
         res.json({ success: true, user });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+       
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyValue)[0];
+            const readableField = field === 'number' ? 'Phone number' : 'Email';
+            return res.status(400).json({ 
+                success: false, 
+                message: `${readableField} is already linked to another account.` 
+            });
+        }
+
+      
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ success: false, message: messages[0] });
+        }
+
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
 
-// @desc    Add New Address (Detailed Fields)
 exports.addAddress = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
@@ -45,7 +60,6 @@ exports.addAddress = async (req, res) => {
     }
 };
 
-// @desc    Delete Address
 exports.deleteAddress = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
@@ -59,7 +73,6 @@ exports.deleteAddress = async (req, res) => {
     }
 };
 
-// @desc    Change Password with Current Check
 exports.changePassword = async (req, res) => {
     try {
         const { oldPassword, newPassword } = req.body;
@@ -68,7 +81,7 @@ exports.changePassword = async (req, res) => {
         const isMatch = await user.comparePassword(oldPassword);
         if (!isMatch) return res.status(401).json({ message: "Current password incorrect" });
 
-        user.password = newPassword; // Hashed by pre-save hook
+        user.password = newPassword; 
         await user.save();
         res.json({ success: true, message: "Password updated" });
     } catch (error) {
