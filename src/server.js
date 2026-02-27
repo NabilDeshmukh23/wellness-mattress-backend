@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profileRoutes');
+const productRoutes = require('./routes/productRoutes');
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/products', productRoutes);
 
 const uri = process.env.MONGO_URI;
 
