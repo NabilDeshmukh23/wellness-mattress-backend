@@ -1,18 +1,16 @@
 const Product = require('../models/Product');
 
-// @desc    Get all products (with optional filters)
-// @route   GET /api/products
+
 exports.getAllProducts = async (req, res) => {
     try {
         const { size, category } = req.query;
         let query = {};
 
-        // Filter by sizeCategory (Single, Double, Queen, King) [cite: 84, 85]
+       
         if (size) {
             query["variants.sizeCategory"] = size;
         }
 
-        // Filter by Mattress Category [cite: 37, 85]
         if (category) {
             query.category = category;
         }
