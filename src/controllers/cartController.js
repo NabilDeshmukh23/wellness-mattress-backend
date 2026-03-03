@@ -3,8 +3,8 @@ const Product = require('../models/Product');
 
 exports.getCart = async (req, res) => {
     try {
-        // 1. Fetch cart and populate product details
-        const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+        const cart = await Cart.findOne({ user: req.user.id })
+            .populate('items.product', 'productName imageUrl variants sqMtPrices isCustomizable'); 
         
         if (!cart || cart.items.length === 0) {
             return res.status(200).json({ 
@@ -20,7 +20,6 @@ exports.getCart = async (req, res) => {
             let currentPrice = item.price; 
 
             if (product) {
-             
                 const variant = product.variants.find(v => 
                     v.length === item.length && 
                     v.width === item.width && 
@@ -30,23 +29,22 @@ exports.getCart = async (req, res) => {
                 if (variant) {
                     currentPrice = variant.price;
                 } else if (product.isCustomizable) {
-                   
+               
                     const rateObj = product.sqMtPrices.find(p => p.thickness === item.thickness);
-                    const rate = rateObj ? rateObj.rate : product.sqMtPrices[0].rate;
+                    const rate = rateObj ? rateObj.rate : (product.sqMtPrices[0]?.rate || 0);
                     currentPrice = Math.round(((item.length * item.width) / 1550) * rate);
                 }
             }
 
-            const itemTotal = currentPrice * item.quantity;
-            subtotal += itemTotal;
+            subtotal += (currentPrice * item.quantity);
             
             return {
                 ...item.toObject(),
-                price: currentPrice 
+                price: currentPrice
             };
         });
 
-       
+        
         cart.items.forEach((item, index) => {
             item.price = updatedItems[index].price;
         });
@@ -63,7 +61,7 @@ exports.getCart = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Get Cart Error:", error);
+        console.error("Secure Get Cart Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -136,7 +134,7 @@ exports.removeFromCart = async (req, res) => {
     try {
         const cart = await Cart.findOne({ user: req.user.id });
         
-        // Safety check to prevent crashing if cart is null
+      
         if (!cart) return res.status(404).json({ success: false, message: "Cart not found" });
 
         cart.items = cart.items.filter(item => item._id.toString() !== req.params.itemId);
