@@ -9,6 +9,7 @@ const { protect } = require('../middleware/authMiddleware');
 
 router.get('/', getAllProducts);
 router.get('/:id', getProductDetails);
+router.get('/search', searchProducts);
 
 router.post('/reviews', protect, createProductReview);
 

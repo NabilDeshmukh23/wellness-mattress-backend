@@ -27,6 +27,28 @@ exports.getAllProducts = async (req, res) => {
     }
 };
 
+export const searchProducts = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) return res.json({ success: true, products: [] });
+
+    // 'i' makes it case-insensitive
+    const searchRegex = new RegExp(query, 'i'); 
+
+    const products = await Product.find({
+      $or: [
+        { productName: searchRegex },
+        { category: searchRegex },
+        { description: searchRegex }
+      ]
+    }).limit(10); // Limit results for better performance
+
+    res.json({ success: true, products });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Search failed" });
+  }
+};
+
 
 exports.createProductReview = async (req, res) => {
     const { rating, comment, productId } = req.body;
