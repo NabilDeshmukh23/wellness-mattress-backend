@@ -27,12 +27,12 @@ exports.getAllProducts = async (req, res) => {
     }
 };
 
-export const searchProducts = async (req, res) => {
+exports.searchProducts = async (req, res) => {
   try {
     const { query } = req.query;
     if (!query) return res.json({ success: true, products: [] });
 
-    // 'i' makes it case-insensitive
+    // 'i' makes it case-insensitive for fuzzy matching
     const searchRegex = new RegExp(query, 'i'); 
 
     const products = await Product.find({
