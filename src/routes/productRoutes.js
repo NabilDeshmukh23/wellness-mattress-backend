@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { 
+    searchProducts,
     getAllProducts, 
     getProductDetails, 
     createProductReview, 
