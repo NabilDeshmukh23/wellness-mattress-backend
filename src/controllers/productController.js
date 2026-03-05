@@ -28,6 +28,53 @@ exports.getAllProducts = async (req, res) => {
 };
 
 
+exports.createProductReview = async (req, res) => {
+    const { rating, comment, productId } = req.body;
+
+    const review = {
+        user: req.user._id, // Set via your auth middleware
+        userName: req.user.name,
+        rating: Number(rating),
+        comment,
+    };
+
+    try {
+        const product = await Product.findById(productId);
+
+        // Check if user has already reviewed the product
+        const isReviewed = product.reviews.find(
+            (rev) => rev.user.toString() === req.user._id.toString()
+        );
+
+        if (isReviewed) {
+            // Update the existing review
+            product.reviews.forEach((rev) => {
+                if (rev.user.toString() === req.user._id.toString()) {
+                    rev.comment = comment;
+                    rev.rating = rating;
+                }
+            });
+        } else {
+            // Add new review
+            product.reviews.push(review);
+            product.numReviews = product.reviews.length;
+        }
+
+        // Calculate the overall average rating
+        product.ratings = product.reviews.reduce((acc, item) => item.rating + acc, 0) / product.reviews.length;
+
+        await product.save({ validateBeforeSave: false });
+
+        res.status(200).json({
+            success: true,
+            review 
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+
 exports.getProductDetails = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);

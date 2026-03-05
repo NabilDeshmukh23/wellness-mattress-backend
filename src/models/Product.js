@@ -1,5 +1,31 @@
 const mongoose = require('mongoose');
 
+const reviewSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User', 
+        required: true
+    },
+    userName: {
+        type: String,
+        required: true
+    },
+    rating: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 5
+    },
+    comment: {
+        type: String,
+        required: true
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+});
+
 const productSchema = new mongoose.Schema({
     productName: {
         type: String,
@@ -27,7 +53,6 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: [true, "Product image URL is required"]
     },
-    // Updated variants to include Size Category and Memory Foam toggle
     variants: [
         {
             length: { type: Number, required: true },
@@ -35,12 +60,7 @@ const productSchema = new mongoose.Schema({
             thickness: { type: String, required: true },
             price: { type: Number, required: true },
             stock: { type: Number, required: true, default: 0 },
-            // Logic for Memory Foam vs Standard [cite: 1, 4]
-            hasMemoryFoam: { 
-                type: Boolean, 
-                default: false 
-            },
-            // Categorizing for Frontend Filtering [cite: 2, 6]
+            hasMemoryFoam: { type: Boolean, default: false },
             sizeCategory: { 
                 type: String, 
                 enum: ['Single', 'Double', 'Queen', 'King'],
@@ -52,10 +72,10 @@ const productSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
-   sqMtPrices: [
+    sqMtPrices: [
         {
-            thickness: { type: String, required: true }, // e.g., "5\""
-            rate: { type: Number, required: true }      // e.g., 7770
+            thickness: { type: String, required: true },
+            rate: { type: Number, required: true }
         }
     ],
     basePrice: {
@@ -70,8 +90,17 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: [true, "e.g., 24 Months, 60 Months, or 84 Months"]
     },
-    ratings: { type: Number, default: 0 },
-    numReviews: { type: Number, default: 0 },
+    
+    reviews: [reviewSchema], 
+    ratings: { 
+        type: Number, 
+        default: 0 
+    },
+    numReviews: { 
+        type: Number, 
+        default: 0 
+    },
+    
     isBestseller: { type: Boolean, default: false }
 }, { timestamps: true }); 
 
