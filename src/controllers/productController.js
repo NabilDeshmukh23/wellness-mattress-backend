@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const Product = require('../models/Product');
 
 
 exports.getAllProducts = async (req, res) => {
@@ -47,6 +48,46 @@ exports.searchProducts = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: "Search failed" });
   }
+};
+
+exports.updateAndGetBestsellers = async (req, res) => {
+    try {
+        // 1. Run aggregation to find the top 8 sold products
+        const bestsellerData = await Order.aggregate([
+            { $match: { "paymentInfo.status": "Paid" } },
+            { $unwind: "$items" },
+            {
+                $group: {
+                    _id: "$items.product",
+                    totalSold: { $sum: "$items.quantity" }
+                }
+            },
+            { $sort: { totalSold: -1 } },
+            { $limit: 8 }
+        ]);
+
+        const bestsellerIds = bestsellerData.map(item => item._id);
+
+        // 2. Reset all products (remove old bestseller flags)
+        await Product.updateMany({}, { isBestseller: false });
+
+        // 3. Update the new top performers in the Product collection
+        await Product.updateMany(
+            { _id: { $in: bestsellerIds } },
+            { isBestseller: true }
+        );
+
+        // 4. Fetch the full product details to send back to frontend
+        const products = await Product.find({ isBestseller: true });
+
+        res.status(200).json({
+            success: true,
+            count: products.length,
+            products
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 
