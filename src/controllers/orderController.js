@@ -11,6 +11,66 @@ const razorpay = new Razorpay({
 
 // Step 1: Create Order Intent
 
+exports.getAdminDashboardStats = async (req, res) => {
+    try {
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        // Calculate KPIs using $facet to get overall and monthly stats in one query
+        const stats = await Order.aggregate([
+            {
+                $facet: {
+                    overall: [
+                        { $match: { "paymentInfo.status": "Paid" } },
+                        {
+                            $group: {
+                                _id: null,
+                                totalRevenue: { $sum: "$totalAmount" },
+                                totalOrders: { $sum: 1 }
+                            }
+                        }
+                    ],
+                    monthly: [
+                        { 
+                            $match: { 
+                                "paymentInfo.status": "Paid",
+                                createdAt: { $gte: firstDayOfMonth } 
+                            } 
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                monthlyRevenue: { $sum: "$totalAmount" },
+                                monthlyOrders: { $sum: 1 }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
+
+        // Fetch all orders for the table and CSV export
+        const allOrders = await Order.find()
+            .sort({ createdAt: -1 })
+            .lean(); // Use lean for faster read-only performance
+
+        const kpis = {
+            totalRevenue: stats[0].overall[0]?.totalRevenue || 0,
+            totalOrders: stats[0].overall[0]?.totalOrders || 0,
+            monthlyRevenue: stats[0].monthly[0]?.monthlyRevenue || 0,
+            monthlyOrders: stats[0].monthly[0]?.monthlyOrders || 0,
+        };
+
+        res.status(200).json({
+            success: true,
+            kpis,
+            orders: allOrders
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 
 exports.createOrder = async (req, res) => {
     try {

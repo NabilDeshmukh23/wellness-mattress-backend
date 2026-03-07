@@ -1,5 +1,7 @@
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const csv = require('csv-parser');
+const fs = require('fs');
 
 
 exports.getAllProducts = async (req, res) => {
@@ -23,6 +25,68 @@ exports.getAllProducts = async (req, res) => {
             count: products.length,
             products
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+
+
+exports.importProductsCSV = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "Please upload a CSV file" });
+        }
+
+        const products = [];
+        const filePath = req.file.path;
+
+        fs.createReadStream(filePath)
+            .pipe(csv())
+            .on('data', (row) => {
+                // Mapping EVERY field from your schema (excluding reviews)
+                products.push({
+                    productName: row['productName'],
+                    description: row['description'],
+                    category: row['category'],
+                    feel: row['feel'],
+                    imageUrl: row['imageUrl'],
+                    basePrice: Number(row['basePrice']),
+                    discount: Number(row['discount'] || 0),
+                    warranty: row['warranty'],
+                    isCustomizable: row['isCustomizable']?.toLowerCase() === 'true',
+                    isBestseller: row['isBestseller']?.toLowerCase() === 'true',
+                    ratings: Number(row['ratings'] || 0),
+                    numReviews: Number(row['numReviews'] || 0),
+                    
+                    // Complex Array Fields
+                    // Expected format in CSV: [{"length":72,"width":36,"thickness":"6 inch","price":12000,"stock":10,"hasMemoryFoam":true,"sizeCategory":"Single"}]
+                    variants: row['variants'] ? JSON.parse(row['variants']) : [],
+                    
+                    // Expected format in CSV: [{"thickness":"6 inch","rate":2500}]
+                    sqMtPrices: row['sqMtPrices'] ? JSON.parse(row['sqMtPrices']) : []
+                });
+            })
+            .on('end', async () => {
+                try {
+                    // Using insertMany for bulk performance
+                    await Product.insertMany(products, { ordered: false }); 
+                    
+                    // Cleanup temp file
+                    fs.unlinkSync(filePath);
+
+                    res.status(200).json({
+                        success: true,
+                        message: `Successfully imported ${products.length} products to the catalog.`
+                    });
+                } catch (err) {
+                    // Handle validation or duplicate name errors
+                    res.status(500).json({ 
+                        success: false, 
+                        message: "Error during database insertion: " + err.message 
+                    });
+                }
+            });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -24,3 +24,16 @@ exports.protect = async (req, res, next) => {
         return res.status(401).json({ message: "Not authorized, no token" });
     }
 };
+
+exports.adminOnly = (req, res, next) => {
+    // Check if the user object exists (from protect) and if the role is Admin
+    if (req.user && req.user.role === 'Admin') {
+        return next();
+    } else {
+        // Return 403 Forbidden if the user is a regular Customer
+        return res.status(403).json({ 
+            success: false, 
+            message: "Access denied. Admin privileges required." 
+        });
+    }
+};
