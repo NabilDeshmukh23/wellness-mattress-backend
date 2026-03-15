@@ -9,14 +9,11 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// Step 1: Create Order Intent
-
 exports.getAdminDashboardStats = async (req, res) => {
     try {
         const now = new Date();
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // Calculate KPIs using $facet to get overall and monthly stats in one query
         const stats = await Order.aggregate([
             {
                 $facet: {
@@ -49,10 +46,9 @@ exports.getAdminDashboardStats = async (req, res) => {
             }
         ]);
 
-        // Fetch all orders for the table and CSV export
         const allOrders = await Order.find()
             .sort({ createdAt: -1 })
-            .lean(); // Use lean for faster read-only performance
+            .lean(); 
 
         const kpis = {
             totalRevenue: stats[0].overall[0]?.totalRevenue || 0,
@@ -71,30 +67,26 @@ exports.getAdminDashboardStats = async (req, res) => {
     }
 };
 
-
 exports.createOrder = async (req, res) => {
     try {
         const { shippingDetails, items } = req.body;
-
         let totalCalculatedAmount = 0;
 
-        // ✅ Step 1: Securely re-calculate price on backend
-        for (const item of items) {
+        // ✅ FIX: Use Promise.all to map prices back into the items array
+        const itemsWithPrices = await Promise.all(items.map(async (item) => {
             const dbProduct = await Product.findById(item.product);
             
             if (!dbProduct) {
-                return res.status(404).json({ message: `Product ${item.productName} not found` });
+                throw new Error(`Product ${item.productName} not found`);
             }
 
             let itemPrice = 0;
 
             if (item.isCustom) {
-                // Re-calculate custom price using your sqMt formula
                 const rateObj = dbProduct.sqMtPrices.find(p => p.thickness === item.thickness);
                 const rate = rateObj ? rateObj.rate : dbProduct.sqMtPrices[0].rate;
                 itemPrice = Math.round(((item.length * item.width) / 1550) * rate);
             } else {
-                // Find the exact variant price in DB
                 const variant = dbProduct.variants.find(v => 
                     v.length === item.length && 
                     v.width === item.width && 
@@ -104,9 +96,14 @@ exports.createOrder = async (req, res) => {
             }
 
             totalCalculatedAmount += itemPrice * item.quantity;
-        }
 
-        // ✅ Step 2: Create Razorpay Order with the SECURE amount
+            // ✅ CRITICAL: Return the object WITH the price field so Mongoose is happy
+            return {
+                ...item,
+                price: itemPrice 
+            };
+        }));
+
         const options = {
             amount: totalCalculatedAmount * 100, // paise
             currency: "INR",
@@ -115,12 +112,12 @@ exports.createOrder = async (req, res) => {
 
         const razorpayOrder = await razorpay.orders.create(options);
 
-        // ✅ Step 3: Save to DB
+        // ✅ Step 3: Save 'itemsWithPrices' to DB instead of the original 'items'
         const order = await Order.create({
             user: req.user._id,
-            items,
+            items: itemsWithPrices, // Price is now present in every item
             shippingDetails,
-            totalAmount: totalCalculatedAmount, // Use the server-calculated total
+            totalAmount: totalCalculatedAmount,
             paymentInfo: {
                 razorpay_order_id: razorpayOrder.id,
                 status: 'Pending'
@@ -137,7 +134,6 @@ exports.createOrder = async (req, res) => {
     }
 };
 
-// Step 2: Verify Payment Signature
 exports.verifyPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
@@ -149,7 +145,6 @@ exports.verifyPayment = async (req, res) => {
             .digest("hex");
 
         if (razorpay_signature === expectedSign) {
-            // Update order status to Paid
             await Order.findOneAndUpdate(
                 { "paymentInfo.razorpay_order_id": razorpay_order_id },
                 { 
