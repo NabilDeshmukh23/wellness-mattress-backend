@@ -68,70 +68,126 @@ exports.getAdminDashboardStats = async (req, res) => {
 };
 
 exports.createOrder = async (req, res) => {
-    try {
-        const { shippingDetails, items } = req.body;
-        let totalCalculatedAmount = 0;
+  try {
+    const { shippingDetails, items } = req.body;
 
-        // ✅ FIX: Use Promise.all to map prices back into the items array
-        const itemsWithPrices = await Promise.all(items.map(async (item) => {
-            const dbProduct = await Product.findById(item.product);
-            
-            if (!dbProduct) {
-                throw new Error(`Product ${item.productName} not found`);
-            }
+    console.log("---- CREATE ORDER START ----");
+    console.log("Incoming items:", items);
 
-            let itemPrice = 0;
+    let totalCalculatedAmount = 0;
 
-            if (item.isCustom) {
-                const rateObj = dbProduct.sqMtPrices.find(p => p.thickness === item.thickness);
-                const rate = rateObj ? rateObj.rate : dbProduct.sqMtPrices[0].rate;
-                itemPrice = Math.round(((item.length * item.width) / 1550) * rate);
-            } else {
-                const variant = dbProduct.variants.find(v => 
-                    v.length === item.length && 
-                    v.width === item.width && 
-                    v.thickness === item.thickness
-                );
-                itemPrice = variant ? variant.price : 0;
-            }
+    const itemsWithPrices = await Promise.all(
+      items.map(async (item, index) => {
+        console.log(`\nProcessing Item #${index + 1}`);
+        console.log("Incoming item:", item);
 
-            totalCalculatedAmount += itemPrice * item.quantity;
+        const dbProduct = await Product.findById(item.product);
 
-            // ✅ CRITICAL: Return the object WITH the price field so Mongoose is happy
-            return {
-                ...item,
-                price: itemPrice 
-            };
-        }));
+        if (!dbProduct) {
+          throw new Error(`Product not found for ID: ${item.product}`);
+        }
 
-        const options = {
-            amount: totalCalculatedAmount * 100, // paise
-            currency: "INR",
-            receipt: `receipt_${Date.now()}`,
+        console.log("DB Product:", dbProduct.productName);
+        console.log("DB Variants:", dbProduct.variants);
+
+        let itemPrice = 0;
+
+        if (item.isCustom) {
+          console.log("Custom size item detected");
+
+          const rateObj = dbProduct.sqMtPrices.find(
+            (p) => String(p.thickness).trim() === String(item.thickness).trim()
+          );
+
+          const rate = rateObj ? rateObj.rate : dbProduct.sqMtPrices[0].rate;
+
+          console.log("Matched Rate:", rate);
+
+          itemPrice = Math.round(((item.length * item.width) / 1550) * rate);
+
+          console.log("Calculated Custom Price:", itemPrice);
+
+        } else {
+          console.log("Variant-based item detected");
+
+          const variant = dbProduct.variants.find((v) => {
+            return (
+              Number(v.length) === Number(item.length) &&
+              Number(v.width) === Number(item.width) &&
+              String(v.thickness).trim() === String(item.thickness).trim()
+            );
+          });
+
+          console.log("Matched Variant:", variant);
+
+          if (!variant) {
+            throw new Error(
+              `Variant not found for product ${item.productName} (${item.length}x${item.width} ${item.thickness})`
+            );
+          }
+
+          itemPrice = variant.price;
+
+          console.log("Variant Price:", itemPrice);
+        }
+
+        const itemTotal = itemPrice * item.quantity;
+
+        console.log("Item Total:", itemTotal);
+
+        totalCalculatedAmount += itemTotal;
+
+        console.log("Running Cart Total:", totalCalculatedAmount);
+
+        return {
+          ...item,
+          price: itemPrice,
         };
+      })
+    );
 
-        const razorpayOrder = await razorpay.orders.create(options);
+    console.log("\nFinal Cart Total:", totalCalculatedAmount);
 
-        // ✅ Step 3: Save 'itemsWithPrices' to DB instead of the original 'items'
-        const order = await Order.create({
-            user: req.user._id,
-            items: itemsWithPrices, // Price is now present in every item
-            shippingDetails,
-            totalAmount: totalCalculatedAmount,
-            paymentInfo: {
-                razorpay_order_id: razorpayOrder.id,
-                status: 'Pending'
-            }
-        });
+    const options = {
+      amount: totalCalculatedAmount * 100,
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+    };
 
-        res.status(201).json({
-            success: true,
-            order: razorpayOrder,
-            dbOrderId: order._id
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    console.log("Creating Razorpay Order with:", options);
+
+    const razorpayOrder = await razorpay.orders.create(options);
+
+    console.log("Razorpay Order Created:", razorpayOrder);
+
+    const order = await Order.create({
+      user: req.user._id,
+      items: itemsWithPrices,
+      shippingDetails,
+      totalAmount: totalCalculatedAmount,
+      paymentInfo: {
+        razorpay_order_id: razorpayOrder.id,
+        status: "Pending",
+      },
+    });
+
+    console.log("Order saved to DB:", order._id);
+    console.log("---- CREATE ORDER END ----");
+
+    res.status(201).json({
+      success: true,
+      order: razorpayOrder,
+      dbOrderId: order._id,
+    });
+
+  } catch (error) {
+    console.error("ORDER CREATION ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 exports.verifyPayment = async (req, res) => {
