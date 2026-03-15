@@ -4,10 +4,10 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 
 // Initialize Razorpay with your credentials
-// const razorpay = new Razorpay({
-//     key_id: process.env.RAZORPAY_KEY_ID,
-//     key_secret: process.env.RAZORPAY_KEY_SECRET,
-// });
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 // Step 1: Create Order Intent
 
