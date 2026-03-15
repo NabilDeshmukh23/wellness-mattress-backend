@@ -71,15 +71,12 @@ exports.createOrder = async (req, res) => {
   try {
     const { shippingDetails, items } = req.body;
 
-    console.log("---- CREATE ORDER START ----");
-    console.log("Incoming items:", items);
 
     let totalCalculatedAmount = 0;
 
     const itemsWithPrices = await Promise.all(
       items.map(async (item, index) => {
-        console.log(`\nProcessing Item #${index + 1}`);
-        console.log("Incoming item:", item);
+      
 
         const dbProduct = await Product.findById(item.product);
 
@@ -87,57 +84,54 @@ exports.createOrder = async (req, res) => {
           throw new Error(`Product not found for ID: ${item.product}`);
         }
 
-        console.log("DB Product:", dbProduct.productName);
-        console.log("DB Variants:", dbProduct.variants);
-
         let itemPrice = 0;
 
-        if (item.isCustom) {
-          console.log("Custom size item detected");
+        // Try to match an existing variant first
+        const variant = dbProduct.variants.find((v) => {
+          return (
+            Number(v.length) === Number(item.length) &&
+            Number(v.width) === Number(item.width) &&
+            String(v.thickness).trim() === String(item.thickness).trim()
+          );
+        });
+
+        if (variant) {
+         
+
+          itemPrice = variant.price;
+        } else {
+       
 
           const rateObj = dbProduct.sqMtPrices.find(
-            (p) => String(p.thickness).trim() === String(item.thickness).trim()
+            (p) =>
+              String(p.thickness).trim() ===
+              String(item.thickness).trim()
           );
 
-          const rate = rateObj ? rateObj.rate : dbProduct.sqMtPrices[0].rate;
-
-          console.log("Matched Rate:", rate);
-
-          itemPrice = Math.round(((item.length * item.width) / 1550) * rate);
-
-          console.log("Calculated Custom Price:", itemPrice);
-
-        } else {
-          console.log("Variant-based item detected");
-
-          const variant = dbProduct.variants.find((v) => {
-            return (
-              Number(v.length) === Number(item.length) &&
-              Number(v.width) === Number(item.width) &&
-              String(v.thickness).trim() === String(item.thickness).trim()
-            );
-          });
-
-          console.log("Matched Variant:", variant);
-
-          if (!variant) {
+          if (!rateObj) {
             throw new Error(
-              `Variant not found for product ${item.productName} (${item.length}x${item.width} ${item.thickness})`
+              `No pricing found for thickness ${item.thickness}`
             );
           }
 
-          itemPrice = variant.price;
+          const rate = rateObj.rate;
 
-          console.log("Variant Price:", itemPrice);
+        
+
+          itemPrice = Math.round(
+            ((Number(item.length) * Number(item.width)) / 1550) * rate
+          );
+
+         
         }
 
         const itemTotal = itemPrice * item.quantity;
 
-        console.log("Item Total:", itemTotal);
+      
 
         totalCalculatedAmount += itemTotal;
 
-        console.log("Running Cart Total:", totalCalculatedAmount);
+      
 
         return {
           ...item,
@@ -146,19 +140,14 @@ exports.createOrder = async (req, res) => {
       })
     );
 
-    console.log("\nFinal Cart Total:", totalCalculatedAmount);
-
     const options = {
       amount: totalCalculatedAmount * 100,
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     };
 
-    console.log("Creating Razorpay Order with:", options);
 
     const razorpayOrder = await razorpay.orders.create(options);
-
-    console.log("Razorpay Order Created:", razorpayOrder);
 
     const order = await Order.create({
       user: req.user._id,
@@ -171,8 +160,6 @@ exports.createOrder = async (req, res) => {
       },
     });
 
-    console.log("Order saved to DB:", order._id);
-    console.log("---- CREATE ORDER END ----");
 
     res.status(201).json({
       success: true,
@@ -181,7 +168,6 @@ exports.createOrder = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("ORDER CREATION ERROR:", error);
 
     res.status(500).json({
       success: false,
