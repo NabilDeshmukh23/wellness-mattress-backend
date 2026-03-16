@@ -7,7 +7,10 @@ const {
     getProductDetails, 
     createProductReview, 
     updateAndGetBestsellers,
-    importProductsCSV 
+    importProductsCSV,
+    getAllProductsAdmin,
+    updateProduct,
+    deleteProduct
 } = require('../controllers/productController');
 const { protect, adminOnly } = require('../middleware/authMiddleware'); 
 
@@ -17,9 +20,9 @@ router.get('/bestsellers', updateAndGetBestsellers);
 router.get('/search', searchProducts);
 router.get('/', getAllProducts);
 
-router.get('/admin/products', isAuthenticatedUser, authorizeRoles('Admin'), getAllProductsAdmin);
-router.put('/admin/product/:id', isAuthenticatedUser, authorizeRoles('Admin'), updateProduct);
-router.delete('/admin/product/:id', isAuthenticatedUser, authorizeRoles('Admin'), deleteProduct);
+router.get('/admin/products', protect, adminOnly, getAllProductsAdmin);
+router.put('/admin/product/:id', protect, adminOnly, updateProduct);
+router.delete('/admin/product/:id', protect, adminOnly, deleteProduct);
 
 
 router.post('/import', protect, adminOnly, upload.single('file'), importProductsCSV);
