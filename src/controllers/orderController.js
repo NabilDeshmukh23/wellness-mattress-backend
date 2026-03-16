@@ -67,6 +67,30 @@ exports.getAdminDashboardStats = async (req, res) => {
     }
 };
 
+
+exports.updateOrderStatus = async (req, res) => {
+    try {
+        const { orderStatus } = req.body;
+        const order = await Order.findByIdAndUpdate(
+            req.params.id,
+            { orderStatus },
+            { new: true, runValidators: true }
+        );
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Order status updated to ${orderStatus}`,
+            order
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 exports.createOrder = async (req, res) => {
   try {
     const { shippingDetails, items } = req.body;

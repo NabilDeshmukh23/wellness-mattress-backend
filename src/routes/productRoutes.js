@@ -17,6 +17,10 @@ router.get('/bestsellers', updateAndGetBestsellers);
 router.get('/search', searchProducts);
 router.get('/', getAllProducts);
 
+router.get('/admin/products', isAuthenticatedUser, authorizeRoles('Admin'), getAllProductsAdmin);
+router.put('/admin/product/:id', isAuthenticatedUser, authorizeRoles('Admin'), updateProduct);
+router.delete('/admin/product/:id', isAuthenticatedUser, authorizeRoles('Admin'), deleteProduct);
+
 
 router.post('/import', protect, adminOnly, upload.single('file'), importProductsCSV);
 
