@@ -4,25 +4,58 @@ const csv = require('csv-parser');
 const fs = require('fs');
 
 
-exports.getAllProducts = async (req, res) => {
+exports.getMattress = async (req, res) => {
     try {
         const { size, category } = req.query;
-        let query = {};
+        
+        let query = { productType: "Mattress" };
 
-       
-        if (size) {
-            query["variants.sizeCategory"] = size;
-        }
-
-        if (category) {
-            query.category = category;
-        }
+        if (size) query["variants.sizeCategory"] = size;
+        if (category) query.category = category;
 
         const products = await Product.find(query);
 
         res.status(200).json({
             success: true,
             count: products.length,
+            products
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getPillows = async (req, res) => {
+    try {
+        const { category } = req.query;
+        
+       
+        let query = { productType: "Pillows" };
+
+        
+        if (category) {
+            query.category = category;
+        }
+
+        const products = await Product.find(query).sort({ basePrice: 1 });
+
+        res.status(200).json({
+            success: true,
+            count: products.length,
+            products
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getSlimMattress = async (req, res) => {
+    try {
+        let query = { productType: "Slim Mattress" };
+        const products = await Product.find(query);
+        
+        res.status(200).json({
+            success: true,
             products
         });
     } catch (error) {

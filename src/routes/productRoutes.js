@@ -10,7 +10,9 @@ const {
     importProductsCSV,
     getAllProductsAdmin,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getPillows,
+    getSlimMattress
 } = require('../controllers/productController');
 const { protect, adminOnly } = require('../middleware/authMiddleware'); 
 
@@ -19,6 +21,10 @@ const upload = multer({ dest: 'uploads/' });
 router.get('/bestsellers', updateAndGetBestsellers);
 router.get('/search', searchProducts);
 router.get('/', getAllProducts);
+router.get('/pillows', getPillows);
+router.get('/slimMattress', getSlimMattress);
+
+
 
 router.get('/admin/products', protect, adminOnly, getAllProductsAdmin);
 router.put('/admin/product/:id', protect, adminOnly, updateProduct);

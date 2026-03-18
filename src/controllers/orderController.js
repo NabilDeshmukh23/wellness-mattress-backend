@@ -12,7 +12,10 @@ const razorpay = new Razorpay({
 exports.getAdminDashboardStats = async (req, res) => {
     try {
         const now = new Date();
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        
+        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
         const stats = await Order.aggregate([
             {
@@ -31,7 +34,10 @@ exports.getAdminDashboardStats = async (req, res) => {
                         { 
                             $match: { 
                                 "paymentInfo.status": "Paid",
-                                createdAt: { $gte: firstDayOfMonth } 
+                                createdAt: { 
+                                    $gte: firstDayOfMonth,
+                                    $lte: lastDayOfMonth 
+                                } 
                             } 
                         },
                         {
