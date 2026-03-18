@@ -41,26 +41,42 @@ exports.addToCart = async (req, res) => {
         if (!productData) return res.status(404).json({ success: false, message: "Product not found" });
 
         let verifiedPrice = 0;
-        const variant = productData.variants.find(v => 
-            v.length === Number(length) && v.width === Number(width) && v.thickness === thickness
-        );
 
-        if (variant) {
-            verifiedPrice = variant.price;
-        } else if (productData.isCustomizable) {
-            const rateObj = productData.sqMtPrices.find(p => p.thickness === thickness);
-            const rate = rateObj ? rateObj.rate : productData.sqMtPrices[0].rate;
-            verifiedPrice = Math.round(((Number(length) * Number(width)) / 1550) * rate);
+      
+        if (productData.productType === 'Pillows') {
+         
+            const pillowVariant = productData.variants[0]; 
+            verifiedPrice = pillowVariant ? pillowVariant.price : productData.basePrice;
+        } 
+       
+        else {
+            const variant = productData.variants.find(v => 
+                v.length === Number(length) && 
+                v.width === Number(width) && 
+                v.thickness === thickness
+            );
+
+            if (variant) {
+                verifiedPrice = variant.price;
+            } 
+          
+            else if (productData.isCustomizable && productData.sqMtPrices && productData.sqMtPrices.length > 0) {
+                const rateObj = productData.sqMtPrices.find(p => p.thickness === thickness);
+                const rate = rateObj ? rateObj.rate : productData.sqMtPrices[0].rate;
+                verifiedPrice = Math.round(((Number(length) * Number(width)) / 1550) * rate);
+            } else {
+                verifiedPrice = productData.basePrice;
+            }
         }
 
         let cart = await Cart.findOne({ user: req.user.id });
         if (!cart) cart = new Cart({ user: req.user.id, items: [] });
 
+      
         const itemIndex = cart.items.findIndex(item => 
             item.product.toString() === productId && 
             item.thickness === thickness && 
-            item.width === Number(width) && 
-            item.length === Number(length)
+            (productData.productType === 'Pillows' || (item.width === Number(width) && item.length === Number(length)))
         );
 
         if (itemIndex > -1) {
@@ -68,14 +84,17 @@ exports.addToCart = async (req, res) => {
             cart.items[itemIndex].price = verifiedPrice;
         } else {
             cart.items.push({ 
-                product: productId, length: Number(length), width: Number(width), 
-                thickness, price: verifiedPrice, quantity: Number(quantity) || 1 
+                product: productId, 
+                length: Number(length) || 0, 
+                width: Number(width) || 0, 
+                thickness: thickness || "Standard", 
+                price: verifiedPrice, 
+                quantity: Number(quantity) || 1 
             });
         }
 
         await cart.save();
         
-        // ✅ CRITICAL: Fetch fully populated cart before responding
         const fullCart = await getPopulatedCart(req.user.id);
         res.status(200).json(fullCart);
     } catch (error) {
