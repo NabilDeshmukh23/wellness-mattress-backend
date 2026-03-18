@@ -100,14 +100,10 @@ exports.updateOrderStatus = async (req, res) => {
 exports.createOrder = async (req, res) => {
   try {
     const { shippingDetails, items } = req.body;
-
-
     let totalCalculatedAmount = 0;
 
     const itemsWithPrices = await Promise.all(
-      items.map(async (item, index) => {
-      
-
+      items.map(async (item) => {
         const dbProduct = await Product.findById(item.product);
 
         if (!dbProduct) {
@@ -116,52 +112,48 @@ exports.createOrder = async (req, res) => {
 
         let itemPrice = 0;
 
-        // Try to match an existing variant first
-        const variant = dbProduct.variants.find((v) => {
-          return (
-            Number(v.length) === Number(item.length) &&
-            Number(v.width) === Number(item.width) &&
-            String(v.thickness).trim() === String(item.thickness).trim()
-          );
-        });
-
-        if (variant) {
-         
-
-          itemPrice = variant.price;
-        } else {
-       
-
-          const rateObj = dbProduct.sqMtPrices.find(
-            (p) =>
-              String(p.thickness).trim() ===
-              String(item.thickness).trim()
-          );
-
-          if (!rateObj) {
-            throw new Error(
-              `No pricing found for thickness ${item.thickness}`
-            );
-          }
-
-          const rate = rateObj.rate;
-
+        // ✅ 1. PILLOW LOGIC: Skip math, use flat price
+        if (dbProduct.productType === 'Pillows') {
+          // Use the first variant price or the basePrice as fallback
+          itemPrice = dbProduct.variants[0]?.price || dbProduct.basePrice;
+        } 
         
+        // ✅ 2. MATTRESS LOGIC
+        else {
+          // Try to match an existing variant first
+          const variant = dbProduct.variants.find((v) => {
+            return (
+              Number(v.length) === Number(item.length) &&
+              Number(v.width) === Number(item.width) &&
+              String(v.thickness).trim() === String(item.thickness).trim()
+            );
+          });
 
-          itemPrice = Math.round(
-            ((Number(item.length) * Number(item.width)) / 1550) * rate
-          );
+          if (variant) {
+            itemPrice = variant.price;
+          } 
+          // Custom Calculation for Mattresses
+          else if (dbProduct.sqMtPrices && dbProduct.sqMtPrices.length > 0) {
+            const rateObj = dbProduct.sqMtPrices.find(
+              (p) => String(p.thickness).trim() === String(item.thickness).trim()
+            );
 
-         
+            if (!rateObj) {
+              // Fallback: If "Standard" isn't found, use the first available rate 
+              // instead of throwing an error for pillows/slims
+              const fallbackRate = dbProduct.sqMtPrices[0].rate;
+              itemPrice = Math.round(((Number(item.length) * Number(item.width)) / 1550) * fallbackRate);
+            } else {
+              itemPrice = Math.round(((Number(item.length) * Number(item.width)) / 1550) * rateObj.rate);
+            }
+          } else {
+            // Final safety fallback
+            itemPrice = dbProduct.basePrice;
+          }
         }
 
         const itemTotal = itemPrice * item.quantity;
-
-      
-
         totalCalculatedAmount += itemTotal;
-
-      
 
         return {
           ...item,
@@ -171,11 +163,10 @@ exports.createOrder = async (req, res) => {
     );
 
     const options = {
-      amount: totalCalculatedAmount * 100,
+      amount: totalCalculatedAmount * 100, // Razorpay expects paise
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     };
-
 
     const razorpayOrder = await razorpay.orders.create(options);
 
@@ -190,7 +181,6 @@ exports.createOrder = async (req, res) => {
       },
     });
 
-
     res.status(201).json({
       success: true,
       order: razorpayOrder,
@@ -198,7 +188,6 @@ exports.createOrder = async (req, res) => {
     });
 
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: error.message,
