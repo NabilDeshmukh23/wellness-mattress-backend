@@ -33,6 +33,11 @@ const productSchema = new mongoose.Schema({
         trim: true,
         unique: true
     },
+    productType: {
+        type: String,
+        required: [true, "Product type is required (Mattress, Pillows, or Slim Mattress)"],
+        trim: true
+    },
     description: {
         type: String,
         required: [true, "Please enter product description"]
