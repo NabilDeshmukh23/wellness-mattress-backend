@@ -15,32 +15,45 @@ exports.getAdminDashboardStats = async (req, res) => {
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
         const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const search = req.query.search || "";
+
+      
+        let searchFilter = {};
+        if (search) {
+            const isObjectId = mongoose.Types.ObjectId.isValid(search);
+            searchFilter = {
+                $or: [
+                    { "shippingDetails.firstName": { $regex: search, $options: 'i' } },
+                    { "shippingDetails.lastName": { $regex: search, $options: 'i' } },
+                    { "paymentInfo.razorpay_payment_id": { $regex: search, $options: 'i' } },
+                    ...(isObjectId ? [{ "_id": new mongoose.Types.ObjectId(search) }] : [])
+                ]
+            };
+        }
+
         const stats = await Order.aggregate([
             {
                 $facet: {
-                    overall: [
+                    
+                    overallKpis: [
                         {
                             $group: {
                                 _id: null,
-                               
                                 totalRevenue: { 
                                     $sum: { $cond: [{ $eq: ["$paymentInfo.status", "Paid"] }, "$totalAmount", 0] } 
                                 },
-                             
                                 totalOrders: { $sum: 1 },
-                               
                                 totalPaidOrders: { 
                                     $sum: { $cond: [{ $eq: ["$paymentInfo.status", "Paid"] }, 1, 0] } 
                                 }
                             }
                         }
                     ],
-                    monthly: [
-                        { 
-                            $match: { 
-                                createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth } 
-                            } 
-                        },
+                    monthlyKpis: [
+                        { $match: { createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth } } },
                         {
                             $group: {
                                 _id: null,
@@ -50,30 +63,49 @@ exports.getAdminDashboardStats = async (req, res) => {
                                 monthlyOrders: { $sum: 1 }
                             }
                         }
+                    ],
+                    ordersList: [
+                        { $match: searchFilter },
+                        { $sort: { createdAt: -1 } },
+                        { $skip: skip },
+                        { $limit: limit }
+                    ],
+                 
+                    totalFilteredCount: [
+                        { $match: searchFilter },
+                        { $count: "count" }
                     ]
                 }
             }
         ]);
 
-    
-        const allOrders = await Order.find()
-            .sort({ createdAt: -1 })
-            .lean(); 
+        const facetResult = stats[0];
 
+        // Format KPI response
         const kpis = {
-            totalRevenue: stats[0].overall[0]?.totalRevenue || 0,
-            totalOrders: stats[0].overall[0]?.totalOrders || 0,
-            totalPaidOrders: stats[0].overall[0]?.totalPaidOrders || 0,
-            monthlyRevenue: stats[0].monthly[0]?.monthlyRevenue || 0,
-            monthlyOrders: stats[0].monthly[0]?.monthlyOrders || 0,
+            totalRevenue: facetResult.overallKpis[0]?.totalRevenue || 0,
+            totalOrders: facetResult.overallKpis[0]?.totalOrders || 0,
+            totalPaidOrders: facetResult.overallKpis[0]?.totalPaidOrders || 0,
+            monthlyRevenue: facetResult.monthlyKpis[0]?.monthlyRevenue || 0,
+            monthlyOrders: facetResult.monthlyKpis[0]?.monthlyOrders || 0,
         };
+
+        // Format Pagination metadata
+        const totalFiltered = facetResult.totalFilteredCount[0]?.count || 0;
 
         res.status(200).json({
             success: true,
             kpis,
-            orders: allOrders
+            orders: facetResult.ordersList,
+            pagination: {
+                totalOrders: totalFiltered,
+                totalPages: Math.ceil(totalFiltered / limit),
+                currentPage: page,
+                limit
+            }
         });
     } catch (error) {
+        console.error("Dashboard Stats Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
