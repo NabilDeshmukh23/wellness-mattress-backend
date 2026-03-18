@@ -127,46 +127,55 @@ exports.importProductsCSV = async (req, res) => {
         fs.createReadStream(filePath)
             .pipe(csv())
             .on('data', (row) => {
-                // Mapping EVERY field from your schema (excluding reviews)
+               
+                const type = row['productType'] || "Mattress";
+
                 products.push({
                     productName: row['productName'],
+                    productType: type,
                     description: row['description'],
                     category: row['category'],
-                    feel: row['feel'],
+                    
+                 
+                    feel: row['feel'] || (type === 'Pillows' ? 'Plush' : type === 'Slim Mattress' ? 'Firm' : 'Medium'), 
+                    
                     imageUrl: row['imageUrl'],
-                    basePrice: Number(row['basePrice']),
+                    basePrice: Number(row['basePrice'] || 0),
                     discount: Number(row['discount'] || 0),
-                    warranty: row['warranty'],
+                    
+                    
+                    warranty: row['warranty'] || "NA", 
+                    
                     isCustomizable: row['isCustomizable']?.toLowerCase() === 'true',
                     isBestseller: row['isBestseller']?.toLowerCase() === 'true',
                     ratings: Number(row['ratings'] || 0),
                     numReviews: Number(row['numReviews'] || 0),
                     
-                    // Complex Array Fields
-                    // Expected format in CSV: [{"length":72,"width":36,"thickness":"6 inch","price":12000,"stock":10,"hasMemoryFoam":true,"sizeCategory":"Single"}]
+                 
                     variants: row['variants'] ? JSON.parse(row['variants']) : [],
-                    
-                    // Expected format in CSV: [{"thickness":"6 inch","rate":2500}]
                     sqMtPrices: row['sqMtPrices'] ? JSON.parse(row['sqMtPrices']) : []
                 });
             })
             .on('end', async () => {
                 try {
-                    // Using insertMany for bulk performance
+                    if (products.length === 0) {
+                        return res.status(400).json({ success: false, message: "CSV file is empty" });
+                    }
+
+                   
                     await Product.insertMany(products, { ordered: false }); 
                     
-                    // Cleanup temp file
-                    fs.unlinkSync(filePath);
+                    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
                     res.status(200).json({
                         success: true,
-                        message: `Successfully imported ${products.length} products to the catalog.`
+                        message: `Successfully imported ${products.length} items.`
                     });
                 } catch (err) {
-                    // Handle validation or duplicate name errors
+                    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
                     res.status(500).json({ 
                         success: false, 
-                        message: "Error during database insertion: " + err.message 
+                        message: "Import failed: " + err.message 
                     });
                 }
             });
