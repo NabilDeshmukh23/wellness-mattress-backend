@@ -7,6 +7,7 @@ const products = [
     productName: "Wellness Supportec",
     description: "The peak of luxury and durability. This heavy-duty mattress is available in two specialized builds: a standard high-resiliency core or an upgraded version featuring a premium 1-inch Memory Foam top layer for superior pressure relief.",
     category: "Hybrid",
+    productType: "Mattress",
     feel: "Medium Firm",
     imageUrl: "https://your-image-url.com/wellness-supported.jpg",
     warranty: "84 MONTHS", //
@@ -81,6 +82,7 @@ const products = [
         description: "The Dream Sleep series is designed for plush, cloud-like comfort. Featuring high-resiliency foam and a breathable top layer, it provides a medium-soft feel that's perfect for pressure relief and deep, restful sleep.",
         category: "Memory Foam",
         feel: "Medium Soft",
+        productType: "Mattress",
         imageUrl: "https://your-image-url.com/dream-sleep.jpg",
         warranty: "24 MONTHS", // 
         sqMtPrices: [
@@ -146,6 +148,7 @@ const products = [
         description: "An orthopedic masterpiece crafted with firm bonded foam to ensure correct spinal alignment. Designed for durability and back support, the Spine Comfort series is perfect for those who require a firm sleep surface to prevent morning back pain.",
         category: "Orthopedic",
         feel: "Firm",
+        productType: "Mattress",
         imageUrl: "https://your-image-url.com/spine-comfort.jpg",
         warranty: "60 MONTHS", // [cite: 83]
         sqMtPrices: [
@@ -211,6 +214,7 @@ const products = [
         description: "The Ortho Fit series is engineered for high-responsiveness and adaptive support. Using advanced reactive foam technology, it contours to your body shape instantly, providing relief to pressure points and ensuring a balanced sleep posture for active lifestyles.",
         category: "Orthopedic",
         feel: "Firm",
+        productType: "Mattress",
         imageUrl: "https://your-image-url.com/ortho-fit.jpg",
        warranty: "60 MONTHS", // [cite: 154]
        sqMtPrices: [
@@ -276,6 +280,7 @@ const products = [
         description: "The Latex Pro mattress offers the ultimate in natural luxury and breathability. Crafted with premium latex, it provides a buoyant, weightless feel while being naturally hypoallergenic and resistant to dust mites. Perfect for sleepers who want a cool, eco-friendly environment with durable support.",
         category: "Latex",
         feel: "Medium",
+        productType: "Mattress",
         imageUrl: "https://your-image-url.com/latex-pro.jpg",
         warranty: "60 MONTHS", // [cite: 155]
        sqMtPrices: [
@@ -335,7 +340,67 @@ const products = [
            { length: 84, width: 60, thickness: "6\"", price: 31108, sizeCategory: "Queen" }, // [cite: 148]
            { length: 84, width: 72, thickness: "6\"", price: 37330, sizeCategory: "King" }  // [cite: 149]
         ]
-    }
+    },
+
+    
+  {
+    productName: "Wellness Cloud",
+   category: "Breathable Fiber",
+    productType: "Pillows",
+    warranty: "NA MONTHS",
+    feel: "Plush",
+    subCategory: "Fiber Pillow",
+    description: "Experience a weightless sleep with the Wellness Cloud. Engineered with premium airy fibers, this pillow is designed for those who prefer a lightweight, breathable feel that keeps you cool throughout the night.",
+    basePrice: 0,
+    imageUrl: "/products/pillows/wellness-cloud.jpg",
+  },
+  {
+    productName: "Wellness Soft-Fill",
+    category: "Plush Fiber",
+    productType: "Pillows",
+    feel: "Medium Soft",
+     warranty: "NA MONTHS", // [cite: 155]
+    subCategory: "Fiber Pillow",
+    description: "The Wellness Soft-Fill offers a plush, gentle support system that cradles your head and neck. Ideal for stomach and back sleepers looking for a cloud-like cushioning effect without excessive height.",
+    basePrice: 0,
+    imageUrl: "/products/pillows/soft-fill.jpg"
+  },
+  {
+    productName: "Wellness Silk-Rest",
+   category: "Luxury Microfiber",
+    productType: "Pillows",
+    feel: "Ultra Soft",
+     warranty: "NA MONTHS", // [cite: 155]
+    subCategory: "Microfiber Pillow",
+    description: "Indulge in the ultra-soft texture of the Wellness Silk-Rest. Using high-denier microfibers, this pillow mimics the luxurious feel of down while providing a hypoallergenic and durable sleeping surface.",
+    benefits: ["Ultra-Soft Texture", "Luxury Down-Alternative", "Anti-Dust Mite", "Shape Retention"],
+    basePrice: 0,
+    imageUrl: "/products/pillows/silk-rest.jpg",
+  },
+  {
+    productName: "Wellness Memory-Relief",
+   category: "Contour Memory Foam",
+    productType: "Pillows",
+    feel: "Medium Firm",
+     warranty: "NA MONTHS", // [cite: 155]
+    subCategory: "Memory Foam Pillow",
+    description: "Specifically designed for pressure relief, the Wellness Memory-Relief contours perfectly to your unique shape. It significantly reduces morning stiffness by evenly distributing weight across the foam surface.",
+    basePrice: 0,
+    imageUrl: "/products/pillows/memory-relief.jpg",
+    
+  },
+  {
+    productName: "Wellness Pure-Bounce",
+   category: "Natural Latex",
+    productType: "Pillows",
+    feel: "Responsive / Bouncy",
+    warranty: "NA MONTHS", // [cite: 155]
+    subCategory: "Latex Pillow",
+    description: "Harvested from natural sources, the Wellness Pure-Bounce offers unmatched resilience and a 'springy' feel. It provides instant responsive support that moves with you, ensuring you never feel 'stuck' in your pillow.",
+    basePrice: 0,
+    imageUrl: "/products/pillows/pure-bounce.jpg",
+  
+  }
 ];
 
 const seedDB = async () => {
