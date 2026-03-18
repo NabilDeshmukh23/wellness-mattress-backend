@@ -20,21 +20,19 @@ const upload = multer({ dest: 'uploads/' });
 
 router.get('/bestsellers', updateAndGetBestsellers);
 router.get('/search', searchProducts);
-router.get('/', getMattress);
 router.get('/pillows', getPillows);
 router.get('/slimMattress', getSlimMattress);
-
-
+router.get('/mattress', getMattress);
 
 router.get('/admin/products', protect, adminOnly, getAllProductsAdmin);
 router.put('/admin/product/:id', protect, adminOnly, updateProduct);
 router.delete('/admin/product/:id', protect, adminOnly, deleteProduct);
-
-
 router.post('/import', protect, adminOnly, upload.single('file'), importProductsCSV);
 
 router.get('/:id', getProductDetails);
 
 router.post('/reviews', protect, createProductReview);
+
+router.get('/', getMattress);
 
 module.exports = router;
