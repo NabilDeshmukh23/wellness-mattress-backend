@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer'); 
 const { 
     searchProducts,
-    getAllProducts, 
+    getMattress, 
     getProductDetails, 
     createProductReview, 
     updateAndGetBestsellers,
@@ -20,7 +20,7 @@ const upload = multer({ dest: 'uploads/' });
 
 router.get('/bestsellers', updateAndGetBestsellers);
 router.get('/search', searchProducts);
-router.get('/', getAllProducts);
+router.get('/', getMattress);
 router.get('/pillows', getPillows);
 router.get('/slimMattress', getSlimMattress);
 
