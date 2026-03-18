@@ -12,38 +12,41 @@ const razorpay = new Razorpay({
 exports.getAdminDashboardStats = async (req, res) => {
     try {
         const now = new Date();
-        
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        
         const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
         const stats = await Order.aggregate([
             {
                 $facet: {
                     overall: [
-                        { $match: { "paymentInfo.status": "Paid" } },
                         {
                             $group: {
                                 _id: null,
-                                totalRevenue: { $sum: "$totalAmount" },
-                                totalOrders: { $sum: 1 }
+                               
+                                totalRevenue: { 
+                                    $sum: { $cond: [{ $eq: ["$paymentInfo.status", "Paid"] }, "$totalAmount", 0] } 
+                                },
+                             
+                                totalOrders: { $sum: 1 },
+                               
+                                totalPaidOrders: { 
+                                    $sum: { $cond: [{ $eq: ["$paymentInfo.status", "Paid"] }, 1, 0] } 
+                                }
                             }
                         }
                     ],
                     monthly: [
                         { 
                             $match: { 
-                                "paymentInfo.status": "Paid",
-                                createdAt: { 
-                                    $gte: firstDayOfMonth,
-                                    $lte: lastDayOfMonth 
-                                } 
+                                createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth } 
                             } 
                         },
                         {
                             $group: {
                                 _id: null,
-                                monthlyRevenue: { $sum: "$totalAmount" },
+                                monthlyRevenue: { 
+                                    $sum: { $cond: [{ $eq: ["$paymentInfo.status", "Paid"] }, "$totalAmount", 0] } 
+                                },
                                 monthlyOrders: { $sum: 1 }
                             }
                         }
@@ -52,6 +55,7 @@ exports.getAdminDashboardStats = async (req, res) => {
             }
         ]);
 
+    
         const allOrders = await Order.find()
             .sort({ createdAt: -1 })
             .lean(); 
@@ -59,6 +63,7 @@ exports.getAdminDashboardStats = async (req, res) => {
         const kpis = {
             totalRevenue: stats[0].overall[0]?.totalRevenue || 0,
             totalOrders: stats[0].overall[0]?.totalOrders || 0,
+            totalPaidOrders: stats[0].overall[0]?.totalPaidOrders || 0,
             monthlyRevenue: stats[0].monthly[0]?.monthlyRevenue || 0,
             monthlyOrders: stats[0].monthly[0]?.monthlyOrders || 0,
         };
@@ -72,7 +77,6 @@ exports.getAdminDashboardStats = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
-
 
 exports.updateOrderStatus = async (req, res) => {
     try {
