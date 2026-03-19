@@ -52,8 +52,7 @@ const productSchema = new mongoose.Schema({
         required: [true, "Specify mattress feel (e.g. Firm, Medium, Plush)"]
     },
     imageUrl: {
-        type: String,
-        required: [true, "Product image URL is required"]
+        type: String
     },
     images: {
         type: [String],
