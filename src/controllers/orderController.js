@@ -19,15 +19,21 @@ exports.getAdminDashboardStats = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        const search = req.query.search || "";
+        
+        let search = req.query.search || "";
+        search = search.replace('#', ''); 
 
         let searchFilter = {};
         if (search) {
-            if (mongoose.Types.ObjectId.isValid(search)) {
-                searchFilter = { "_id": new mongoose.Types.ObjectId(search) };
-            } else {
-                searchFilter = { "_id": null }; 
-            }
+            searchFilter = {
+                $expr: {
+                    $regexMatch: {
+                        input: { $toString: "$_id" }, 
+                        regex: search,               
+                        options: "i"                
+                    }
+                }
+            };
         }
 
         const stats = await Order.aggregate([
@@ -60,7 +66,7 @@ exports.getAdminDashboardStats = async (req, res) => {
                         }
                     ],
                     ordersList: [
-                        { $match: searchFilter },
+                        { $match: searchFilter }, 
                         { $sort: { createdAt: -1 } },
                         { $skip: skip },
                         { $limit: limit }
