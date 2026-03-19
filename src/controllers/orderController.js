@@ -21,24 +21,18 @@ exports.getAdminDashboardStats = async (req, res) => {
         const skip = (page - 1) * limit;
         const search = req.query.search || "";
 
-      
         let searchFilter = {};
         if (search) {
-            const isObjectId = mongoose.Types.ObjectId.isValid(search);
-            searchFilter = {
-                $or: [
-                    { "shippingDetails.firstName": { $regex: search, $options: 'i' } },
-                    { "shippingDetails.lastName": { $regex: search, $options: 'i' } },
-                    { "paymentInfo.razorpay_payment_id": { $regex: search, $options: 'i' } },
-                    ...(isObjectId ? [{ "_id": new mongoose.Types.ObjectId(search) }] : [])
-                ]
-            };
+            if (mongoose.Types.ObjectId.isValid(search)) {
+                searchFilter = { "_id": new mongoose.Types.ObjectId(search) };
+            } else {
+                searchFilter = { "_id": null }; 
+            }
         }
 
         const stats = await Order.aggregate([
             {
                 $facet: {
-                    
                     overallKpis: [
                         {
                             $group: {
@@ -71,7 +65,6 @@ exports.getAdminDashboardStats = async (req, res) => {
                         { $skip: skip },
                         { $limit: limit }
                     ],
-                 
                     totalFilteredCount: [
                         { $match: searchFilter },
                         { $count: "count" }
@@ -82,7 +75,6 @@ exports.getAdminDashboardStats = async (req, res) => {
 
         const facetResult = stats[0];
 
-        // Format KPI response
         const kpis = {
             totalRevenue: facetResult.overallKpis[0]?.totalRevenue || 0,
             totalOrders: facetResult.overallKpis[0]?.totalOrders || 0,
@@ -91,7 +83,6 @@ exports.getAdminDashboardStats = async (req, res) => {
             monthlyOrders: facetResult.monthlyKpis[0]?.monthlyOrders || 0,
         };
 
-        // Format Pagination metadata
         const totalFiltered = facetResult.totalFilteredCount[0]?.count || 0;
 
         res.status(200).json({
